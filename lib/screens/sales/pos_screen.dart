@@ -131,7 +131,7 @@ class _PosScreenState extends State<PosScreen> {
                                           children: [
                                             Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                             const SizedBox(height: 4),
-                                            Text('\$\${p.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontSize: 14, fontWeight: FontWeight.bold)),
+                                            Text('\$${p.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontSize: 14, fontWeight: FontWeight.bold)),
                                             Text('Stock: ${p.quantity}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                                           ],
                                         ),
@@ -153,58 +153,58 @@ class _PosScreenState extends State<PosScreen> {
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            const Text('Current Sale', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                            const Divider(),
+                            const Text('Current Cart', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 16),
                             Expanded(
-                              child: ListView(
-                                children: _cart.entries.map((e) => Card(
-                                  elevation: 0,
-                                  color: Colors.grey[50],
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(e.key.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                            ],
-                                          ),
-                                        ),
-                                        Row(
+                              child: _cart.isEmpty
+                                  ? const Center(child: Text('Cart is empty', style: TextStyle(color: Colors.grey, fontSize: 16)))
+                                  : ListView(
+                                      children: _cart.entries.map((e) => Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                        child: Row(
                                           children: [
-                                            IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: () => _decrementCart(e.key)),
-                                            Text('\${e.value}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                            IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.green), onPressed: () => _addToCart(e.key)),
+                                            Expanded(
+                                              child: Text(e.key.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                            ),
+                                            Row(
+                                              children: [
+                                                IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.grey), onPressed: () => _decrementCart(e.key)),
+                                                Text('\$${e.value}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                                IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.grey), onPressed: () => _addToCart(e.key)),
+                                              ],
+                                            ),
+                                            SizedBox(
+                                              width: 60,
+                                              child: Text('\$${(e.key.price * e.value).toStringAsFixed(2)}', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                            ),
                                           ],
                                         ),
-                                        Text('\$\${(e.key.price * e.value).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                      ],
+                                      )).toList(),
                                     ),
-                                  ),
-                                )).toList(),
+                            ),
+                            const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text('Total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                  Text('\$${_totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF143E26))),
+                                ],
                               ),
                             ),
-                            const Divider(thickness: 2),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('Total:', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                                Text('\$\${_totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green)),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
                             SizedBox(
                               width: double.infinity,
                               height: 50,
                               child: ElevatedButton(
-                                onPressed: _showCheckoutModal,
+                                onPressed: _cart.isEmpty ? null : _showCheckoutModal,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primaryColor,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  backgroundColor: _cart.isEmpty ? Colors.grey[300] : const Color(0xFF143E26),
+                                  foregroundColor: _cart.isEmpty ? Colors.grey[600] : Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                  elevation: 0,
                                 ),
-                                child: const Text('Checkout', style: TextStyle(fontSize: 20, color: Colors.white)),
+                                child: const Text('Checkout', style: TextStyle(fontSize: 18)),
                               ),
                             )
                           ],
@@ -258,7 +258,7 @@ class _PosScreenState extends State<PosScreen> {
                                         children: [
                                           Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                                           const SizedBox(height: 8),
-                                          Text('\$\${p.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.bold)),
+                                          Text('\$${p.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.bold)),
                                           const SizedBox(height: 8),
                                           Text('Stock: ${p.quantity}', style: const TextStyle(color: Colors.grey)),
                                         ],
@@ -278,63 +278,68 @@ class _PosScreenState extends State<PosScreen> {
                     flex: 1,
                     child: Container(
                       color: Colors.white,
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(24.0),
                       child: Column(
                         children: [
-                          const Text('Current Sale', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                          const Divider(),
+                          const Text('Current Cart', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 24),
                           Expanded(
-                            child: ListView(
-                              children: _cart.entries.map((e) => Card(
-                                elevation: 0,
-                                color: Colors.grey[50],
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(e.key.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                            Text('\$\${e.key.price.toStringAsFixed(2)} each', style: const TextStyle(color: Colors.grey)),
-                                          ],
-                                        ),
-                                      ),
-                                      Row(
+                            child: _cart.isEmpty
+                                ? const Center(child: Text('Cart is empty', style: TextStyle(color: Colors.grey, fontSize: 18)))
+                                : ListView(
+                                    children: _cart.entries.map((e) => Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                                      child: Row(
                                         children: [
-                                          IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: () => _decrementCart(e.key)),
-                                          Text('\${e.value}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                          IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.green), onPressed: () => _addToCart(e.key)),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(e.key.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                                const SizedBox(height: 4),
+                                                Text('\$${e.key.price.toStringAsFixed(2)} each', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                              ],
+                                            ),
+                                          ),
+                                          Row(
+                                            children: [
+                                              IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.grey), onPressed: () => _decrementCart(e.key)),
+                                              Text('\$${e.value}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                              IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.grey), onPressed: () => _addToCart(e.key)),
+                                            ],
+                                          ),
+                                          SizedBox(
+                                            width: 80,
+                                            child: Text('\$${(e.key.price * e.value).toStringAsFixed(2)}', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                          ),
                                         ],
                                       ),
-                                      const SizedBox(width: 8),
-                                      Text('\$\${(e.key.price * e.value).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                    ],
+                                    )).toList(),
                                   ),
-                                ),
-                              )).toList(),
+                          ),
+                          const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Total', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                                Text('\$${_totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF143E26))),
+                              ],
                             ),
                           ),
-                          const Divider(thickness: 2),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Total:', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                              Text('\$\${_totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green)),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
                           SizedBox(
                             width: double.infinity,
                             height: 60,
                             child: ElevatedButton(
-                              onPressed: _showCheckoutModal,
+                              onPressed: _cart.isEmpty ? null : _showCheckoutModal,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryColor,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                backgroundColor: _cart.isEmpty ? Colors.grey[300] : const Color(0xFF143E26),
+                                foregroundColor: _cart.isEmpty ? Colors.grey[600] : Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                elevation: 0,
                               ),
-                              child: const Text('Checkout', style: TextStyle(fontSize: 24, color: Colors.white)),
+                              child: const Text('Checkout', style: TextStyle(fontSize: 22)),
                             ),
                           )
                         ],
@@ -343,8 +348,9 @@ class _PosScreenState extends State<PosScreen> {
                   )
                 ],
               );
-            }
-          ),
+            return const Center(child: Text('Desktop layout coming soon'));
+          },
+        );
   }
 }
 
@@ -465,7 +471,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Checkout - \$\${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+      title: Text('Checkout - \$${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,

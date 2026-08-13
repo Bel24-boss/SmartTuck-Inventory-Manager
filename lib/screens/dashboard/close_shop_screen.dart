@@ -111,13 +111,13 @@ class _CloseShopScreenState extends State<CloseShopScreen> {
               ListTile(
                 tileColor: Colors.grey[200],
                 title: const Text('Expected Cash in Till'),
-                trailing: Text('\$\${_expectedCash.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                trailing: Text('\$${_expectedCash.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 8),
               ListTile(
                 tileColor: Colors.grey[200],
                 title: const Text('Expected EcoCash Balance'),
-                trailing: Text('\$\${_expectedEcocash.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                trailing: Text('\$${_expectedEcocash.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 32),
               const Text('Enter Physical Counts', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),

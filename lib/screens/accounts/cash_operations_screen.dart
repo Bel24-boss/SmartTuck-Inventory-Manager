@@ -47,25 +47,61 @@ class _CashOperationsScreenState extends State<CashOperationsScreen> {
             children: [
               DropdownButtonFormField<String>(
                 value: 'Cash-In',
-                items: ['Cash-In', 'Cash-Out'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                items: ['Cash-In', 'Cash-Out']
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
                 onChanged: (val) => typeCtrl.text = val!,
-                decoration: const InputDecoration(labelText: 'Transaction Type'),
+                decoration: const InputDecoration(
+                  labelText: 'Transaction Type',
+                ),
               ),
               const SizedBox(height: 16),
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Customer Name (Optional)')),
-              TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: 'Phone Number (Optional)')),
-              TextField(controller: ecocashNumCtrl, decoration: const InputDecoration(labelText: 'EcoCash Number')),
-              TextField(controller: amountCtrl, decoration: const InputDecoration(labelText: 'Amount (\$)'), keyboardType: TextInputType.number),
-              TextField(controller: feeCtrl, decoration: const InputDecoration(labelText: 'Service Fee (\$)'), keyboardType: TextInputType.number),
-              TextField(controller: notesCtrl, decoration: const InputDecoration(labelText: 'Notes (Optional)')),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Customer Name (Optional)',
+                ),
+              ),
+              TextField(
+                controller: phoneCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number (Optional)',
+                ),
+              ),
+              TextField(
+                controller: ecocashNumCtrl,
+                decoration: const InputDecoration(labelText: 'EcoCash Number'),
+              ),
+              TextField(
+                controller: amountCtrl,
+                decoration: const InputDecoration(labelText: 'Amount (\$)'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: feeCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Service Fee (\$)',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: notesCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Notes (Optional)',
+                ),
+              ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
-              if (amountCtrl.text.isNotEmpty && ecocashNumCtrl.text.isNotEmpty) {
+              if (amountCtrl.text.isNotEmpty &&
+                  ecocashNumCtrl.text.isNotEmpty) {
                 await DatabaseHelper.instance.createCashOperation(
                   typeCtrl.text,
                   nameCtrl.text.isEmpty ? null : nameCtrl.text,
@@ -82,7 +118,7 @@ class _CashOperationsScreenState extends State<CashOperationsScreen> {
               }
             },
             child: const Text('Save Transaction'),
-          )
+          ),
         ],
       ),
     );
@@ -98,12 +134,15 @@ class _CashOperationsScreenState extends State<CashOperationsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('EcoCash Agent Operations', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text(
+                'EcoCash Agent Operations',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
               ElevatedButton.icon(
                 onPressed: _showNewOperationDialog,
                 icon: const Icon(Icons.add),
                 label: const Text('New Transaction'),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -118,17 +157,23 @@ class _CashOperationsScreenState extends State<CashOperationsScreen> {
                       return Card(
                         child: ListTile(
                           leading: Icon(
-                            isCashIn ? Icons.arrow_downward : Icons.arrow_upward,
+                            isCashIn
+                                ? Icons.arrow_downward
+                                : Icons.arrow_upward,
                             color: isCashIn ? Colors.green : Colors.orange,
                             size: 32,
                           ),
-                          title: Text("\${op['type']} - \$\${op['amount']} (EcoCash: \${op['ecocash_number']})"),
-                          subtitle: Text("Fee: \$\${op['fee']} | Name: \${op['customer_name'] ?? 'N/A'}\nDate: \${op['date']}"),
+                          title: Text(
+                            "${op['type']} - \$${op['amount']} (EcoCash: ${op['ecocash_number']})",
+                          ),
+                          subtitle: Text(
+                            "Fee: \$${op['fee']} | Name: ${op['customer_name'] ?? 'N/A'}\nDate: ${op['date']}",
+                          ),
                         ),
                       );
                     },
                   ),
-          )
+          ),
         ],
       ),
     );

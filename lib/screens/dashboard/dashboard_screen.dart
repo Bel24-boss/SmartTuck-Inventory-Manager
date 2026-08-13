@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../../theme/app_theme.dart';
 import '../../services/database_helper.dart';
-import '../../providers/inventory_provider.dart';
-import 'close_shop_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -14,239 +10,305 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late Future<String> _insightFuture;
-  late Future<List<Map<String, dynamic>>> _topProductsFuture;
+  double _revenue = 0.0;
+  double _netProfit = 0.0;
+  bool _isLoading = true;
+  String _mlInsight = "Insufficient data to model insights. Awaiting minimum sales threshold to generate revenue optimization strategies.";
 
   @override
   void initState() {
     super.initState();
-    _insightFuture = DatabaseHelper.instance.getDynamicInsight();
-    _topProductsFuture = _getTopSellingProducts();
+    _loadMetrics();
   }
 
-  Future<List<Map<String, dynamic>>> _getTopSellingProducts() async {
+  Future<void> _loadMetrics() async {
+    setState(() => _isLoading = true);
     final db = await DatabaseHelper.instance.database;
-    // Get all sale items and aggregate by product_id
-    final saleItems = await db.query('sale_items');
-    final products = await db.query('products');
     
-    Map<int, int> salesCount = {};
-    for (var item in saleItems) {
-      final pid = item['product_id'] as int;
-      final qty = item['quantity'] as int;
-      salesCount[pid] = (salesCount[pid] ?? 0) + qty;
+    // Revenue
+    final sales = await db.query('sales');
+    double rev = 0.0;
+    for (var s in sales) {
+      rev += (s['total_amount'] as num).toDouble();
     }
 
-    if (salesCount.isEmpty) return [];
+    // Expenses
+    final exps = await db.query('expenses');
+    double expTotal = 0.0;
+    for (var e in exps) {
+      expTotal += (e['amount'] as num).toDouble();
+    }
 
-    // Sort by most sold
-    var sortedEntries = salesCount.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    // COGS
+    final saleItems = await db.rawQuery('''
+      SELECT si.quantity, p.buyingPrice 
+      FROM sale_items si 
+      JOIN products p ON si.product_id = p.id
+    ''');
     
-    List<Map<String, dynamic>> topProducts = [];
-    for (var i = 0; i < sortedEntries.length && i < 5; i++) {
-      final pid = sortedEntries[i].key;
-      final qty = sortedEntries[i].value;
-      final productMatch = products.firstWhere((p) => p['id'] == pid, orElse: () => {});
-      final name = productMatch.isNotEmpty ? productMatch['name'] : 'Unknown';
-      
-      topProducts.add({
-        'name': name.toString().length > 10 ? name.toString().substring(0, 10) : name,
-        'quantity': qty
+    double cogs = 0.0;
+    for (var item in saleItems) {
+      int qty = (item['quantity'] as num).toInt();
+      double bp = (item['buyingPrice'] as num).toDouble();
+      cogs += (qty * bp);
+    }
+
+    double netProfit = rev - cogs - expTotal;
+    
+    // Get insight string if sales exist
+    String insight = _mlInsight;
+    if (sales.length > 5) {
+      insight = await DatabaseHelper.instance.getDynamicInsight();
+    }
+
+    if (mounted) {
+      setState(() {
+        _revenue = rev;
+        _netProfit = netProfit;
+        _mlInsight = insight;
+        _isLoading = false;
       });
     }
-    
-    return topProducts;
   }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFC),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Quick action FAB (e.g. quick sale)
+        },
+        backgroundColor: const Color(0xFF1CB581), // Vibrant green
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.add, color: Colors.white, size: 32),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'System Operations Dashboard',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.secondaryColor),
-              ),
-              ElevatedButton.icon(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CloseShopScreen())),
-                icon: const Icon(Icons.exit_to_app),
-                label: const Text('Close Shop (End of Day)'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-              )
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _buildSummaryCard('Total Sales', '\$1,240.50', Icons.stacked_line_chart, AppTheme.primaryColor),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Consumer<InventoryProvider>(
-                  builder: (context, provider, child) {
-                    return _buildSummaryCard('Total Products', '\${provider.products.length}', Icons.inventory_2, AppTheme.accentColor);
-                  },
+              // Hero Banner
+              Container(
+                height: 180,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  image: const DecorationImage(
+                    image: NetworkImage('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=800&q=80'),
+                    fit: BoxFit.cover,
+                  ),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))
+                  ],
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    gradient: LinearGradient(
+                      colors: [Colors.black.withOpacity(0.6), Colors.transparent],
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'SmartTuck Retail Hub',
+                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: const [
+                          Icon(Icons.location_on, color: Colors.white70, size: 16),
+                          SizedBox(width: 4),
+                          Text('Local Community Store', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                        ],
+                      )
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildSummaryCard('Expenses', '\$340.00', Icons.account_balance_wallet, Colors.blueGrey),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            'System Insights & Intelligence',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.secondaryColor),
-          ),
-          const SizedBox(height: 16),
-          FutureBuilder<String>(
-            future: _insightFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                );
-              }
-              return Card(
-                color: AppTheme.primaryColor.withValues(alpha: 0.05),
+              const SizedBox(height: 32),
+
+              // System Insights Card
+              Card(
+                elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.grey.withOpacity(0.2)),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.analytics_outlined, color: AppTheme.primaryColor, size: 32),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.auto_graph, color: Colors.black87),
+                      ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Real-time Analytics Engine',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.secondaryColor),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('System Insights', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                InkWell(
+                                  onTap: _loadMetrics,
+                                  child: Row(
+                                    children: const [
+                                      Icon(Icons.refresh, size: 14, color: Colors.blue),
+                                      SizedBox(width: 4),
+                                      Text('Refresh ML', style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              snapshot.data ?? 'Awaiting data...',
-                              style: const TextStyle(fontSize: 15, height: 1.5, color: Colors.black87),
+                              _mlInsight,
+                              style: TextStyle(color: Colors.grey[600], fontSize: 13, height: 1.5),
                             ),
                           ],
                         ),
-                      ),
+                      )
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            'Top Selling Products (Quantities Bought)',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.secondaryColor),
-          ),
-          const SizedBox(height: 16),
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: _topProductsFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const SizedBox(height: 300, child: Center(child: CircularProgressIndicator()));
-              }
-              final topProducts = snapshot.data ?? [];
-              if (topProducts.isEmpty) {
-                return const SizedBox(
-                  height: 300, 
-                  child: Card(child: Center(child: Text('No sales data yet to display graphs.')))
-                );
-              }
+              ),
+              const SizedBox(height: 32),
 
-              // Find max Y for scaling
-              double maxY = 10;
-              for (var p in topProducts) {
-                if (p['quantity'] > maxY) maxY = (p['quantity'] as int).toDouble() + 5;
-              }
+              // Metrics Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Real-Time Shop Metrics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('Updated Now', style: TextStyle(color: Colors.green[600], fontSize: 12, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 16),
 
-              return SizedBox(
-                height: 300,
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: BarChart(
-                      BarChartData(
-                        alignment: BarChartAlignment.spaceAround,
-                        maxY: maxY,
-                        barTouchData: BarTouchData(enabled: true),
-                        titlesData: FlTitlesData(
-                          show: true,
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              getTitlesWidget: (value, meta) {
-                                final index = value.toInt();
-                                if (index < 0 || index >= topProducts.length) return const Text('');
-                                return SideTitleWidget(
-                                  meta: meta, 
-                                  space: 4.0, 
-                                  child: Text(topProducts[index]['name'], style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold))
-                                );
-                              },
-                            ),
-                          ),
-                          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        ),
-                        gridData: const FlGridData(show: false),
-                        borderData: FlBorderData(show: false),
-                        barGroups: List.generate(topProducts.length, (index) {
-                          return BarChartGroupData(
-                            x: index,
-                            barRods: [
-                              BarChartRodData(
-                                toY: (topProducts[index]['quantity'] as int).toDouble(), 
-                                color: AppTheme.primaryColor, 
-                                width: 25, 
-                                borderRadius: BorderRadius.circular(4)
-                              )
-                            ]
-                          );
-                        }),
-                      ),
+              // Metrics Row
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricCard(
+                      'Revenue',
+                      '\$${_revenue.toStringAsFixed(2)}',
+                      'TOTAL SALES',
+                      Icons.attach_money,
+                      Colors.blue,
                     ),
                   ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildMetricCard(
+                      'Net Profit',
+                      '\$${_netProfit.toStringAsFixed(2)}',
+                      'AFTER EXPENSES',
+                      Icons.trending_up,
+                      Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+
+              // Advanced Modules
+              const Text('Advanced Modules', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.grey.withOpacity(0.2)),
                 ),
-              );
-            }
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.insights, color: Colors.blue),
+                  ),
+                  title: const Text('Analytics & Reports', style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('View detailed charts for best selling products and profits.', style: TextStyle(fontSize: 12)),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  onTap: () {
+                    // Navigate to reports or change tab via provider in a real setup
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.grey.withOpacity(0.2)),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.account_balance_wallet_outlined, color: Colors.black87),
+                  ),
+                  title: const Text('Expenses Manager', style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Record rent, transport, salaries, and operating costs', style: TextStyle(fontSize: 12)),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  onTap: () {
+                    // Navigate to expenses
+                  },
+                ),
+              ),
+              const SizedBox(height: 80), // Padding for FAB
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
+  Widget _buildMetricCard(String title, String value, String subtitle, IconData icon, Color color) {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.withOpacity(0.2)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 32, color: color),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold)),
+                Icon(icon, color: color, size: 20),
+              ],
+            ),
             const SizedBox(height: 16),
-            Text(title, style: const TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w500)),
+            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.secondaryColor)),
+            Text(subtitle, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
           ],
         ),
       ),

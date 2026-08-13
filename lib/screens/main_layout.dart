@@ -5,7 +5,6 @@ import 'inventory/inventory_screen.dart';
 import 'accounts/accounts_screen.dart';
 import 'reports/reports_screen.dart';
 import 'search/universal_search_delegate.dart';
-import '../theme/app_theme.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -26,80 +25,94 @@ class _MainLayoutState extends State<MainLayout> {
     const Center(child: Text('Settings Coming Soon')),
   ];
 
-  final List<String> _titles = [
-    'Dashboard',
-    'Sales',
-    'Inventory',
-    'Accounts',
-    'Reports',
-    'Settings'
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(_titles[_selectedIndex]),
+        title: const Text('SmartTuck', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: const Icon(Icons.search, color: Colors.black87),
             onPressed: () {
               showSearch(context: context, delegate: UniversalSearchDelegate());
             },
-            tooltip: 'Universal Search',
           ),
-          const SizedBox(width: 16),
+          IconButton(
+            icon: const Icon(Icons.notifications_none, color: Colors.black87),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_outline, color: Colors.black87),
+            onPressed: () {},
+          ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: Row(
-        children: [
-          NavigationRail(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (int index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            labelType: NavigationRailLabelType.all,
-            backgroundColor: AppTheme.cardColor,
-            selectedIconTheme: const IconThemeData(color: AppTheme.primaryColor),
-            selectedLabelTextStyle: const TextStyle(color: AppTheme.primaryColor),
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard),
-                label: Text('Dashboard'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.point_of_sale_outlined),
-                selectedIcon: Icon(Icons.point_of_sale),
-                label: Text('Sales'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.inventory_2_outlined),
-                selectedIcon: Icon(Icons.inventory_2),
-                label: Text('Inventory'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.account_balance_wallet_outlined),
-                selectedIcon: Icon(Icons.account_balance_wallet),
-                label: Text('Accounts'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.bar_chart_outlined),
-                selectedIcon: Icon(Icons.bar_chart),
-                label: Text('Reports'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: Text('Settings'),
-              ),
-            ],
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.2))),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(Icons.dashboard, 'Dashboard', 0),
+                _buildNavItem(Icons.point_of_sale, 'Sales', 1),
+                _buildNavItem(Icons.inventory_2_outlined, 'Inventory', 2),
+                _buildNavItem(Icons.account_balance_wallet_outlined, 'Accounts', 3),
+                _buildNavItem(Icons.bar_chart, 'Reports', 4),
+                _buildNavItem(Icons.settings_outlined, 'Settings', 5),
+              ],
+            ),
           ),
-          const VerticalDivider(thickness: 1, width: 1),
-          Expanded(
-            child: _screens[_selectedIndex],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    bool isSelected = _selectedIndex == index;
+    final activeColor = const Color(0xFF6B4EFF); // Purple-blue from screenshot
+    final inactiveColor = const Color(0xFF4A4A4A); // Dark grey from screenshot
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFFEBE5FF) : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              icon,
+              size: 24,
+              color: isSelected ? activeColor : inactiveColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+              color: isSelected ? activeColor : inactiveColor,
+            ),
           ),
         ],
       ),

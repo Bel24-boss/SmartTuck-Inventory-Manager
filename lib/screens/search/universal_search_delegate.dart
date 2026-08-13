@@ -45,7 +45,7 @@ class UniversalSearchDelegate extends SearchDelegate {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Center(child: Text('Error: \${snapshot.error}'));
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
         final results = snapshot.data ?? [];
         if (results.isEmpty) {
@@ -93,7 +93,7 @@ class UniversalSearchDelegate extends SearchDelegate {
       consolidated.add({
         'type': 'Product',
         'title': p['name'],
-        'subtitle': "Category: \${p['category'] ?? 'N/A'} | Price: \$\${p['price']} | Stock: \${p['quantity']}"
+        'subtitle': "Category: ${p['category'] ?? 'N/A'} | Price: \$${p['price']} | Stock: ${p['quantity']}"
       });
     }
 
@@ -106,7 +106,7 @@ class UniversalSearchDelegate extends SearchDelegate {
       consolidated.add({
         'type': 'Customer Debt/Credit',
         'title': c['customer_name'] ?? 'Unknown',
-        'subtitle': "Phone: \${c['phone'] ?? 'N/A'} | Amount: \$\${c['amount_owed']}"
+        'subtitle': "Phone: ${c['phone'] ?? 'N/A'} | Amount: \$${c['amount_owed']}"
       });
     }
 
@@ -118,8 +118,8 @@ class UniversalSearchDelegate extends SearchDelegate {
     for (var m in mobileMoney) {
       consolidated.add({
         'type': 'Mobile Money',
-        'title': "\${m['type']} - \$\${m['amount']}",
-        'subtitle': "Customer: \${m['customer_name'] ?? 'N/A'} | EcoCash: \${m['ecocash_number']}"
+        'title': "${m['type']} - \$${m['amount']}",
+        'subtitle': "Customer: ${m['customer_name'] ?? 'N/A'} | EcoCash: ${m['ecocash_number']}"
       });
     }
 
@@ -132,7 +132,7 @@ class UniversalSearchDelegate extends SearchDelegate {
       consolidated.add({
         'type': 'Expense',
         'title': e['description'],
-        'subtitle': "Amount: \$\${e['amount']} | Date: \${e['date']}"
+        'subtitle': "Amount: \$${e['amount']} | Date: ${e['date']}"
       });
     }
 
@@ -144,8 +144,8 @@ class UniversalSearchDelegate extends SearchDelegate {
     for (var s in stock) {
       consolidated.add({
         'type': 'Stock Purchase',
-        'title': "Restock from \${s['supplier']}",
-        'subtitle': "Cost: \$\${s['cost']} | Qty: \${s['quantity']}"
+        'title': "Restock from ${s['supplier']}",
+        'subtitle': "Cost: \$${s['cost']} | Qty: ${s['quantity']}"
       });
     }
 

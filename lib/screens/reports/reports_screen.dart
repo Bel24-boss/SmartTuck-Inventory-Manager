@@ -77,21 +77,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
               if (constraints.maxWidth < 600) {
                 return Column(
                   children: [
-                    _summaryCard('Total Revenue', '\$\${_totalSales.toStringAsFixed(2)}', Colors.green),
+                    _summaryCard('Total Revenue', '\$${_totalSales.toStringAsFixed(2)}', Colors.green),
                     const SizedBox(height: 16),
-                    _summaryCard('Total Expenses', '\$\${_totalExpenses.toStringAsFixed(2)}', Colors.red),
+                    _summaryCard('Total Expenses', '\$${_totalExpenses.toStringAsFixed(2)}', Colors.red),
                     const SizedBox(height: 16),
-                    _summaryCard('Net Profit', '\$\${(_totalSales - _totalExpenses).toStringAsFixed(2)}', Colors.blue),
+                    _summaryCard('Net Profit', '\$${(_totalSales - _totalExpenses).toStringAsFixed(2)}', Colors.blue),
                   ],
                 );
               }
               return Row(
                 children: [
-                  Expanded(child: _summaryCard('Total Revenue', '\$\${_totalSales.toStringAsFixed(2)}', Colors.green)),
+                  Expanded(child: _summaryCard('Total Revenue', '\$${_totalSales.toStringAsFixed(2)}', Colors.green)),
                   const SizedBox(width: 16),
-                  Expanded(child: _summaryCard('Total Expenses', '\$\${_totalExpenses.toStringAsFixed(2)}', Colors.red)),
+                  Expanded(child: _summaryCard('Total Expenses', '\$${_totalExpenses.toStringAsFixed(2)}', Colors.red)),
                   const SizedBox(width: 16),
-                  Expanded(child: _summaryCard('Net Profit', '\$\${(_totalSales - _totalExpenses).toStringAsFixed(2)}', Colors.blue)),
+                  Expanded(child: _summaryCard('Net Profit', '\$${(_totalSales - _totalExpenses).toStringAsFixed(2)}', Colors.blue)),
                 ],
               );
             }
@@ -138,9 +138,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  _reportButton('Daily Sales', Icons.calendar_today, () => _showReportDialog('Daily Sales', 'Total Revenue Today: \$\${_totalSales.toStringAsFixed(2)}')),
-                  _reportButton('Expense Log', Icons.receipt_long, () => _showReportDialog('Expense Reports', 'Total Expenses: \$\${_totalExpenses.toStringAsFixed(2)}')),
-                  _reportButton('Mobile Money Ops', Icons.swap_vert, () => _showReportDialog('Mobile Money Ops', 'Total EcoCash Revenue: \$\${_ecoSales.toStringAsFixed(2)}')),
+                  _reportButton('Daily Sales', Icons.calendar_today, () => _showReportDialog('Daily Sales', 'Total Revenue Today: \$${_totalSales.toStringAsFixed(2)}')),
+                  _reportButton('Expense Log', Icons.receipt_long, () => _showReportDialog('Expense Reports', 'Total Expenses: \$${_totalExpenses.toStringAsFixed(2)}')),
+                  _reportButton('Mobile Money Ops', Icons.swap_vert, () => _showReportDialog('Mobile Money Ops', 'Total EcoCash Revenue: \$${_ecoSales.toStringAsFixed(2)}')),
                   _reportButton('Customer Debts', Icons.account_balance_wallet, () => _showReportDialog('Debts/Credits', 'Managed via POS Checkout.')),
                 ],
               );

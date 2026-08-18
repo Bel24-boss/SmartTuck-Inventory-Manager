@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'screens/main_layout.dart';
@@ -6,7 +8,17 @@ import 'screens/opening_screen.dart';
 import 'services/database_helper.dart';
 import 'providers/inventory_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint("Firebase initialized successfully");
+  } catch (e) {
+    debugPrint("Firebase initialization failed: $e. You must add your API keys to firebase_options.dart.");
+  }
+
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const SmartTuckApp());
 }

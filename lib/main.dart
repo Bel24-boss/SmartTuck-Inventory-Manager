@@ -78,6 +78,7 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final _passwordCtrl = TextEditingController();
   bool _isError = false;
+  bool _obscurePassword = true;
 
   void _login() {
     if (_passwordCtrl.text.trim() == 'chenge26') {
@@ -131,7 +132,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     
                     TextField(
                       controller: _passwordCtrl,
-                      obscureText: true,
+                      obscureText: _obscurePassword,
                       style: const TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 4),
                       textAlign: TextAlign.center,
                       decoration: InputDecoration(
@@ -141,6 +142,17 @@ class _AuthScreenState extends State<AuthScreen> {
                         hintStyle: TextStyle(color: Colors.white.withOpacity(0.2), letterSpacing: 4),
                         errorText: _isError ? 'Authentication Failed' : null,
                         errorStyle: const TextStyle(color: Colors.redAccent),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: const Color(0xFF778DA9),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,

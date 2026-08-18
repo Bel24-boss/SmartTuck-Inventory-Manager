@@ -32,12 +32,12 @@ class Product {
       'buyingPrice': buyingPrice,
       'price': price,
       'quantity': quantity,
-      'minimumStockLevel': minimumStockLevel,
+      'minimum_stock_level': minimumStockLevel,
       'barcode': barcode,
       'category': category,
       'supplier': supplier,
-      'dateAdded': dateAdded ?? DateTime.now().toIso8601String(),
-      'expiryDate': expiryDate,
+      'date_added': dateAdded ?? DateTime.now().toIso8601String(),
+      'expiry_date': expiryDate,
     };
   }
 
@@ -48,12 +48,12 @@ class Product {
       buyingPrice: (map['buyingPrice'] as num?)?.toDouble() ?? 0.0,
       price: (map['price'] as num).toDouble(),
       quantity: map['quantity'] as int,
-      minimumStockLevel: map['minimumStockLevel'] as int? ?? 10,
+      minimumStockLevel: map['minimum_stock_level'] as int? ?? 10,
       barcode: map['barcode'] as String?,
       category: map['category'] as String?,
       supplier: map['supplier'] as String?,
-      dateAdded: map['dateAdded'] as String?,
-      expiryDate: map['expiryDate'] as String?,
+      dateAdded: map['date_added'] as String?,
+      expiryDate: map['expiry_date'] as String?,
     );
   }
 }

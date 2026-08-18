@@ -284,4 +284,64 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       ),
     );
   }
+
+  void _showEditExpenseDialog(Map<String, dynamic> exp) {
+    final descCtrl = TextEditingController(text: exp['description']);
+    final amountCtrl = TextEditingController(text: (exp['amount'] as num).toString());
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Expense'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description')),
+            const SizedBox(height: 16),
+            TextField(controller: amountCtrl, decoration: const InputDecoration(labelText: 'Amount'), keyboardType: TextInputType.number),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              final amount = double.tryParse(amountCtrl.text);
+              if (descCtrl.text.isNotEmpty && amount != null) {
+                await DatabaseHelper.instance.updateExpense(exp['id'], descCtrl.text, amount);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  _refreshData();
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteExpenseDialog(Map<String, dynamic> exp) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Expense'),
+        content: const Text('Are you sure you want to delete this expense?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await DatabaseHelper.instance.deleteExpense(exp['id']);
+              if (context.mounted) {
+                Navigator.pop(context);
+                _refreshData();
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 }

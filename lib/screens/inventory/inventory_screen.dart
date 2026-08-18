@@ -87,10 +87,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.edit, color: Colors.grey),
-                                    onPressed: () {
-                                      // Optional edit logic can go here
-                                    },
+                                    onPressed: () => _showEditProductDialog(context, product),
                                     tooltip: 'Edit',
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                    onPressed: () => _showDeleteConfirmation(context, product),
+                                    tooltip: 'Delete',
                                   ),
                                 ],
                               ),
@@ -147,7 +150,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Colors.blue, fontSize: 16))),
                     const SizedBox(width: 16),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         final name = nameCtrl.text;
                         final buyingPrice = double.tryParse(buyingPriceCtrl.text) ?? 0;
                         final price = double.tryParse(priceCtrl.text) ?? 0;
@@ -163,8 +166,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             minimumStockLevel: minStock,
                             dateAdded: DateTime.now().toIso8601String(),
                           );
-                          context.read<InventoryProvider>().addProduct(product);
-                          Navigator.pop(context);
+                          
+                          try {
+                            await context.read<InventoryProvider>().addProduct(product);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Product added successfully!')));
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error adding product: $e'), backgroundColor: Colors.red));
+                            }
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -223,6 +236,126 @@ class _InventoryScreenState extends State<InventoryScreen> {
               }
             },
             child: const Text('Record Purchase'),
+          ),
+        ],
+      ),
+    );
+  }
+  void _showEditProductDialog(BuildContext context, Product product) {
+    final nameCtrl = TextEditingController(text: product.name);
+    final qtyCtrl = TextEditingController(text: product.quantity.toString());
+    final buyingPriceCtrl = TextEditingController(text: product.buyingPrice.toString());
+    final priceCtrl = TextEditingController(text: product.price.toString());
+    final minStockCtrl = TextEditingController(text: product.minimumStockLevel.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: const Color(0xFFF0F1F5),
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.all(32.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Edit Product', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
+                const SizedBox(height: 32),
+                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Product Name', filled: false, border: UnderlineInputBorder(), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)))),
+                const SizedBox(height: 16),
+                TextField(controller: qtyCtrl, decoration: const InputDecoration(labelText: 'Quantity', filled: false, border: UnderlineInputBorder(), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey))), keyboardType: TextInputType.number),
+                const SizedBox(height: 16),
+                TextField(controller: buyingPriceCtrl, decoration: const InputDecoration(labelText: 'Buying Price', filled: false, border: UnderlineInputBorder(), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey))), keyboardType: TextInputType.number),
+                const SizedBox(height: 16),
+                TextField(controller: priceCtrl, decoration: const InputDecoration(labelText: 'Selling Price', filled: false, border: UnderlineInputBorder(), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey))), keyboardType: TextInputType.number),
+                const SizedBox(height: 16),
+                TextField(controller: minStockCtrl, decoration: const InputDecoration(labelText: 'Minimum Stock Level', filled: false, border: UnderlineInputBorder(), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey))), keyboardType: TextInputType.number),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Colors.blue, fontSize: 16))),
+                    const SizedBox(width: 16),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final name = nameCtrl.text;
+                        final buyingPrice = double.tryParse(buyingPriceCtrl.text) ?? 0;
+                        final price = double.tryParse(priceCtrl.text) ?? 0;
+                        final qty = int.tryParse(qtyCtrl.text) ?? 0;
+                        final minStock = int.tryParse(minStockCtrl.text) ?? 5;
+                        
+                        if (name.isNotEmpty) {
+                          final updatedProduct = Product(
+                            id: product.id,
+                            name: name,
+                            buyingPrice: buyingPrice,
+                            price: price,
+                            quantity: qty,
+                            minimumStockLevel: minStock,
+                            dateAdded: product.dateAdded,
+                            barcode: product.barcode,
+                            category: product.category,
+                            supplier: product.supplier,
+                            expiryDate: product.expiryDate,
+                          );
+                          
+                          try {
+                            await context.read<InventoryProvider>().updateProduct(updatedProduct);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Product updated successfully!')));
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating product: $e'), backgroundColor: Colors.red));
+                            }
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[600],
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      child: const Text('Save Changes', style: TextStyle(fontSize: 16)),
+                    )
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, Product product) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Product'),
+        content: Text('Are you sure you want to completely remove ${product.name} from your inventory? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+            onPressed: () async {
+              try {
+                await context.read<InventoryProvider>().deleteProduct(product.id!);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${product.name} deleted.')));
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error deleting product: $e'), backgroundColor: Colors.red));
+                }
+              }
+            },
+            child: const Text('Delete'),
           ),
         ],
       ),

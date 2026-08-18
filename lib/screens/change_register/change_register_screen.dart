@@ -204,4 +204,28 @@ class _ChangeRegisterScreenState extends State<ChangeRegisterScreen> {
       ),
     );
   }
+
+  void _showDeleteChangeDialog(Map<String, dynamic> record) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Record'),
+        content: const Text('Are you sure you want to delete this change record?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await DatabaseHelper.instance.deleteChangeRecord(record['id']);
+              if (context.mounted) {
+                Navigator.pop(context);
+                _loadChangeRegister();
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 }

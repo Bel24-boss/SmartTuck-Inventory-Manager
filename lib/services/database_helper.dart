@@ -293,6 +293,43 @@ class DatabaseHelper {
     return await db.query('change_register', where: 'phone = ? AND status = ?', whereArgs: [phone, 'Pending']);
   }
 
+  
+  Future<int> deleteExpense(int id) async {
+    final db = await instance.database;
+    return await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> updateExpense(int id, String description, double amount) async {
+    final db = await instance.database;
+    return await db.update('expenses', {
+      'description': description,
+      'amount': amount,
+    }, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteCashOperation(int id) async {
+    final db = await instance.database;
+    return await db.delete('cash_operations', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> updateCashOperation(int id, String type, String? name, String? phone, String? ecocashNum, double amount, double fee, String? notes) async {
+    final db = await instance.database;
+    return await db.update('cash_operations', {
+      'type': type,
+      'customer_name': name,
+      'phone': phone,
+      'ecocash_number': ecocashNum,
+      'amount': amount,
+      'fee': fee,
+      'notes': notes
+    }, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteChangeRecord(int id) async {
+    final db = await instance.database;
+    return await db.delete('change_register', where: 'id = ?', whereArgs: [id]);
+  }
+
   // --- Real-time Advanced ML-Mimicry Analytics Engine ---
   Future<String> getDynamicInsight() async {
     final db = await instance.database;

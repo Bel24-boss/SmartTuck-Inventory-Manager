@@ -178,4 +178,28 @@ class _CashOperationsScreenState extends State<CashOperationsScreen> {
       ),
     );
   }
+
+  void _showDeleteOperationDialog(Map<String, dynamic> op) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Transaction'),
+        content: const Text('Are you sure you want to delete this transaction?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await DatabaseHelper.instance.deleteCashOperation(op['id']);
+              if (context.mounted) {
+                Navigator.pop(context);
+                _loadOperations();
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 }

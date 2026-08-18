@@ -265,12 +265,17 @@ class DatabaseHelper {
 
   Future<int> updateProduct(Product product) async {
     final db = await instance.database;
-    return db.update(
+
+    final res = await db.update(
       'products',
       product.toMap(),
       where: 'id = ?',
       whereArgs: [product.id],
     );
+    final p = (await db.query('products', where: 'id = ?', whereArgs: [product.id])).first;
+    _dispatchToCloud('inventory', p['global_id'] as String, p);
+    return res;
+
   }
 
   Future<int> deleteProduct(int id) async {
@@ -285,10 +290,17 @@ class DatabaseHelper {
   // --- SALES METHODS ---
   Future<int> createSale(double totalAmount) async {
     final db = await instance.database;
-    return await db.insert('sales', {
+    
+    final map = {
       'total_amount': totalAmount,
       'date': DateTime.now().toIso8601String(),
-    });
+      'global_id': _uuid.v4(),
+    };
+    final id = await db.insert('sales', map);
+    map['id'] = id;
+    _dispatchToCloud('sales', map['global_id'] as String, map);
+    return id;
+
   }
 
   Future<List<Map<String, dynamic>>> readAllSales() async {
@@ -299,23 +311,37 @@ class DatabaseHelper {
   // --- EXPENSES METHODS ---
   Future<int> recordChangeIssue(String? name, String phone, double amount, String? reason) async {
     final db = await instance.database;
-    return await db.insert('change_register', {
+    
+    final map = {
       'customer_name': name,
       'phone': phone,
       'amount_owed': amount,
       'reason': reason,
       'date': DateTime.now().toIso8601String(),
-      'status': 'Pending'
-    });
+      'status': 'Pending',
+      'global_id': _uuid.v4(),
+    };
+    final id = await db.insert('change_register', map);
+    map['id'] = id;
+    _dispatchToCloud('change_register', map['global_id'] as String, map);
+    return id;
+
   }
 
   Future<int> createExpense(String description, double amount) async {
     final db = await instance.database;
-    return await db.insert('expenses', {
+    
+    final map = {
       'description': description,
       'amount': amount,
       'date': DateTime.now().toIso8601String(),
-    });
+      'global_id': _uuid.v4(),
+    };
+    final id = await db.insert('expenses', map);
+    map['id'] = id;
+    _dispatchToCloud('expenses', map['global_id'] as String, map);
+    return id;
+
   }
 
   Future<List<Map<String, dynamic>>> readAllExpenses() async {
@@ -332,14 +358,21 @@ class DatabaseHelper {
 
   Future<int> openSession(double openingCash, double openingEcocash, double floatCashOut, double floatChange) async {
     final db = await instance.database;
-    return await db.insert('daily_sessions', {
+    
+    final map = {
       'date': DateTime.now().toIso8601String(),
       'opening_cash': openingCash,
       'opening_ecocash': openingEcocash,
       'float_cash_out': floatCashOut,
       'float_change': floatChange,
-      'status': 'Open'
-    });
+      'status': 'Open',
+      'global_id': _uuid.v4(),
+    };
+    final id = await db.insert('daily_sessions', map);
+    map['id'] = id;
+    _dispatchToCloud('daily_sessions', map['global_id'] as String, map);
+    return id;
+
   }
 
   Future<void> closeSession(int sessionId, double actualCash, double actualEcocash, double expectedCash, double expectedEcocash) async {
@@ -347,6 +380,7 @@ class DatabaseHelper {
     final cashDiff = actualCash - expectedCash;
     final ecoDiff = actualEcocash - expectedEcocash;
     
+
     await db.update('daily_sessions', {
       'status': 'Closed',
       'closing_cash': actualCash,
@@ -355,12 +389,17 @@ class DatabaseHelper {
       'ecocash_over_short': ecoDiff,
       'closed_date': DateTime.now().toIso8601String()
     }, where: 'id = ?', whereArgs: [sessionId]);
+    
+    final session = (await db.query('daily_sessions', where: 'id = ?', whereArgs: [sessionId])).first;
+    _dispatchToCloud('daily_sessions', session['global_id'] as String, session);
+
   }
 
   // --- CASH OPERATIONS (ECOCASH AGENT) ---
   Future<int> createCashOperation(String type, String? name, String? phone, String? ecocashNum, double amount, double fee, String? notes) async {
     final db = await instance.database;
-    return await db.insert('cash_operations', {
+    
+    final map = {
       'type': type,
       'customer_name': name,
       'phone': phone,
@@ -368,8 +407,14 @@ class DatabaseHelper {
       'amount': amount,
       'fee': fee,
       'date': DateTime.now().toIso8601String(),
-      'notes': notes
-    });
+      'notes': notes,
+      'global_id': _uuid.v4(),
+    };
+    final id = await db.insert('cash_operations', map);
+    map['id'] = id;
+    _dispatchToCloud('cash_operations', map['global_id'] as String, map);
+    return id;
+
   }
 
   Future<List<Map<String, dynamic>>> readAllCashOperations() async {
@@ -381,14 +426,20 @@ class DatabaseHelper {
   Future<void> recordStockPurchase(int productId, String supplier, int quantity, double totalCost) async {
     final db = await instance.database;
     await db.transaction((txn) async {
-      await txn.insert('stock_purchases', {
+
+      final map = {
         'product_id': productId,
         'supplier': supplier,
         'quantity': quantity,
         'cost': totalCost,
-        'date': DateTime.now().toIso8601String()
-      });
+        'date': DateTime.now().toIso8601String(),
+        'global_id': _uuid.v4(),
+      };
+      final id = await txn.insert('stock_purchases', map);
+      map['id'] = id;
+      _dispatchToCloud('stock_purchases', map['global_id'] as String, map);
       // Update inventory quantity automatically
+
       await txn.rawUpdate('UPDATE products SET quantity = quantity + ? WHERE id = ?', [quantity, productId]);
     });
   }

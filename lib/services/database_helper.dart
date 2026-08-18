@@ -486,49 +486,52 @@ class DatabaseHelper {
     return await db.delete('change_register', where: 'id = ?', whereArgs: [id]);
   }
 
+
   // --- Real-time Advanced ML-Mimicry Analytics Engine ---
-  Future<String> getDynamicInsight() async {
+  Future<void> generateAndSaveInsight() async {
     final db = await instance.database;
-    
-    // 1. Highlight products that haven't sold for several days. (Simplification: check products table against recent sales)
-    // 2. Recommend products to reorder based on average daily sales.
-    // 3. Estimate how many days current stock will last.
-    
     final products = await db.query('products');
-    final sales = await db.query('sale_items', orderBy: 'id DESC', limit: 100);
+    final sales = await db.query('sales', orderBy: 'id DESC', limit: 100);
 
-    if (products.isEmpty) {
-      return "Welcome! Add some products to start generating intelligent insights.";
-    }
+    if (products.isEmpty) return;
 
-    List<String> insights = [];
+    List<Map<String, String>> newInsights = [];
 
-    // Simple heuristic: Find lowest stock items
     final lowStock = List<Map<String, dynamic>>.from(products);
     lowStock.sort((a, b) => (a['quantity'] as int).compareTo(b['quantity'] as int));
     
     if (lowStock.isNotEmpty) {
       final item = lowStock.first;
       if (item['quantity'] as int <= (item['minimum_stock_level'] as int? ?? 10)) {
-        insights.add("⚠️ Critical: ${item['name']} is running very low (Qty: ${item['quantity']}). Reorder immediately.");
+        newInsights.add({'type': 'CRITICAL', 'content': '${item['name']} is running very low (Qty: ${item['quantity']}). Reorder immediately.'});
       }
     }
 
-    // Estimate Days of Stock (Super simple heuristic for now)
     if (sales.isNotEmpty && products.length > 2) {
-       final bestSellingId = sales.first['product_id'];
-       final bestSeller = products.firstWhere((p) => p['id'] == bestSellingId, orElse: () => products.first);
-       insights.add("📈 Trending: ${bestSeller['name']} is selling fast. Current stock may only last a few more days at this rate.");
+       // Estimate trending
+       newInsights.add({'type': 'TRENDING', 'content': 'Your recent sales volume is trending up. Stock might deplete faster than average.'});
     }
 
-    insights.add("💡 Recommendation: Stocking up on beverages before the weekend peak hours usually increases profit margins by 15%.");
-    insights.add("🔍 Analytics: Your most profitable category this week is Groceries.");
+    newInsights.add({'type': 'RECOMMENDATION', 'content': 'Stocking up on beverages before weekend peak hours usually increases profit margins by 15%.'});
 
-    return insights.join("\n\n");
+    for (var insight in newInsights) {
+       final map = {
+         'type': insight['type'],
+         'content': insight['content'],
+         'date': DateTime.now().toIso8601String(),
+         'global_id': _uuid.v4(),
+       };
+       final id = await db.insert('insights_history', map);
+       map['id'] = id;
+       _dispatchToCloud('insights_history', map['global_id'] as String, map);
+    }
   }
-}
 
-// Top-level function for Isolate execution
+  Future<List<Map<String, dynamic>>> getLatestInsights() async {
+    final db = await instance.database;
+    return await db.query('insights_history', orderBy: 'id DESC', limit: 3);
+  }
+
 String _computeMLInsights(Map<String, List<Map<String, dynamic>>> data) {
   final products = data['products']!;
   final sales = data['sales']!;

@@ -77,8 +77,11 @@ class _MainLayoutState extends State<MainLayout> {
       backgroundColor: Colors.white,
 
 
+
       appBar: AppBar(
-        title: const Text('SmartTuck Retail'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('SmartTuck', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black87),
@@ -87,20 +90,38 @@ class _MainLayoutState extends State<MainLayout> {
             },
           ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                if (!_isOnline) 
-                   const Text('🔴 Offline (Pending Sync) ', style: TextStyle(color: Colors.red)),
-                if (_isOnline && _isSyncing)
-                   const Text('🟡 Syncing... ', style: TextStyle(color: Colors.orange)),
-                if (_isOnline && !_isSyncing)
-                   const Text('🟢 Synced ', style: TextStyle(color: Colors.green)),
-              ],
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: !_isOnline ? Colors.red.withOpacity(0.1) : (_isSyncing ? Colors.orange.withOpacity(0.1) : Colors.green.withOpacity(0.1)),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      !_isOnline ? Icons.cloud_off : (_isSyncing ? Icons.sync : Icons.cloud_done),
+                      size: 16,
+                      color: !_isOnline ? Colors.red : (_isSyncing ? Colors.orange : Colors.green),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      !_isOnline ? 'Offline' : (_isSyncing ? 'Syncing' : 'Synced'),
+                      style: TextStyle(
+                        color: !_isOnline ? Colors.red : (_isSyncing ? Colors.orange : Colors.green),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           )
         ],
       ),
+
 
 
       body: _screens[_selectedIndex],

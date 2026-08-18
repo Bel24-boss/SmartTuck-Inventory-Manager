@@ -23,55 +23,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadMetrics();
   }
 
+
   Future<void> _loadMetrics() async {
-    setState(() => _isLoading = true);
     final db = await DatabaseHelper.instance.database;
-    
-    // Revenue
     final sales = await db.query('sales');
-    double rev = 0.0;
-    for (var s in sales) {
-      rev += (s['total_amount'] as num).toDouble();
-    }
-
-    // Expenses
-    final exps = await db.query('expenses');
-    double expTotal = 0.0;
-    for (var e in exps) {
-      expTotal += (e['amount'] as num).toDouble();
-    }
-
-    // COGS
-    final saleItems = await db.rawQuery('''
-      SELECT si.quantity, p.buyingPrice 
-      FROM sale_items si 
-      JOIN products p ON si.product_id = p.id
-    ''');
+    final expenses = await db.query('expenses');
     
-    double cogs = 0.0;
-    for (var item in saleItems) {
-      int qty = (item['quantity'] as num).toInt();
-      double bp = (item['buyingPrice'] as num).toDouble();
-      cogs += (qty * bp);
-    }
-
-    double netProfit = rev - cogs - expTotal;
+    double rev = 0;
+    for (var s in sales) { rev += s['total_amount'] as double; }
     
-    // Get insight string if sales exist
-    String insight = _mlInsight;
-    if (sales.length > 5) {
-      insight = await DatabaseHelper.instance.getDynamicInsight();
-    }
-
+    double exp = 0;
+    for (var e in expenses) { exp += e['amount'] as double; }
+    
+    final latest = await DatabaseHelper.instance.getLatestInsights();
+    
     if (mounted) {
       setState(() {
         _revenue = rev;
-        _netProfit = netProfit;
-        _mlInsight = insight;
-        _isLoading = false;
+        _netProfit = rev - exp;
+        _insights = latest;
       });
     }
   }
+
+  Future<void> _generateNewInsights() async {
+    await DatabaseHelper.instance.generateAndSaveInsight();
+    _loadMetrics();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +117,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 32),
 
               // System Insights Card
+              
               Card(
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -146,50 +126,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.auto_graph, color: Colors.black87),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('System Insights', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                InkWell(
-                                  onTap: _loadMetrics,
-                                  child: Row(
-                                    children: const [
-                                      Icon(Icons.refresh, size: 14, color: Colors.blue),
-                                      SizedBox(width: 4),
-                                      Text('Refresh ML', style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.auto_graph, color: Colors.blue, size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text('System Insights', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            ],
+                          ),
+                          InkWell(
+                            onTap: _generateNewInsights,
+                            child: Row(
+                              children: const [
+                                Icon(Icons.refresh, size: 14, color: Colors.blue),
+                                SizedBox(width: 4),
+                                Text('Refresh ML', style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _mlInsight,
-                              style: TextStyle(color: Colors.grey[600], fontSize: 13, height: 1.5),
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (_insights.isEmpty)
+                        const Text("No insights available. Tap 'Refresh ML' to generate.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                      for (var insight in _insights)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                insight['type'] == 'CRITICAL' ? Icons.warning_amber_rounded :
+                                insight['type'] == 'TRENDING' ? Icons.trending_up : Icons.lightbulb_outline,
+                                size: 18,
+                                color: insight['type'] == 'CRITICAL' ? Colors.red :
+                                insight['type'] == 'TRENDING' ? Colors.orange : Colors.blue,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  insight['content'],
+                                  style: TextStyle(color: Colors.grey[700], fontSize: 13, height: 1.4),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      )
                     ],
                   ),
                 ),
               ),
+
               const SizedBox(height: 32),
 
               // Metrics Header

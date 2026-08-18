@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
@@ -11,9 +14,16 @@ import 'providers/inventory_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Enable native Firestore offline persistence
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
+
     debugPrint("Firebase initialized successfully");
   } catch (e) {
     debugPrint("Firebase initialization failed: $e. You must add your API keys to firebase_options.dart.");
@@ -92,11 +102,22 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isError = false;
   bool _obscurePassword = true;
 
-  void _login() {
+
+  void _login() async {
     if (_passwordCtrl.text.trim() == 'chenge26') {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const SessionRouter())
-      );
+      try {
+        // Sign in anonymously under the hood to satisfy Firebase Auth requirements
+        // This paves the way for future role-based accounts while keeping the prototype simple.
+        await FirebaseAuth.instance.signInAnonymously();
+      } catch (e) {
+        debugPrint('Auth error: ');
+      }
+      
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const SessionRouter())
+        );
+      }
     } else {
       setState(() {
         _isError = true;
@@ -107,6 +128,7 @@ class _AuthScreenState extends State<AuthScreen> {
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

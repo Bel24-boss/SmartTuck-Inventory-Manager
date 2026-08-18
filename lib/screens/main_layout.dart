@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/sync_service.dart';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/database_helper.dart';
 
 import 'dashboard/dashboard_screen.dart';
@@ -38,32 +39,26 @@ class _MainLayoutState extends State<MainLayout> {
 
 
   
-  void _runBackgroundSync() async {
-    Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) {
+
+
+  void _runBackgroundSync() {
+    Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) async {
       if (mounted) {
         setState(() {
           _isOnline = !result.contains(ConnectivityResult.none);
         });
       }
-    });
-
-    while (mounted) {
       if (_isOnline) {
         setState(() => _isSyncing = true);
-        await SyncService.syncAll();
-        setState(() => _isSyncing = false);
+        try {
+          await FirebaseFirestore.instance.waitForPendingWrites();
+        } catch (_) {}
+        if (mounted) setState(() => _isSyncing = false);
       }
-      
-      // Check pending items
-      final db = await DatabaseHelper.instance.database;
-      final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM sync_queue WHERE syncStatus = ?', ['PENDING'])) ?? 0;
-      if (mounted) {
-        setState(() => _pendingChanges = count);
-      }
-      
-      await Future.delayed(const Duration(seconds: 10)); // Check faster
-    }
+    });
   }
+
+
 
 
 
@@ -80,29 +75,28 @@ class _MainLayoutState extends State<MainLayout> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+
+
       appBar: AppBar(
-        title: const Text('SmartTuck', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        title: const Text('SmartTuck Retail'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black87),
-            onPressed: () {
-              showSearch(context: context, delegate: UniversalSearchDelegate());
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.black87),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_outline, color: Colors.black87),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                if (!_isOnline) 
+                   const Text('🔴 Offline (Pending Sync) ', style: TextStyle(color: Colors.red)),
+                if (_isOnline && _isSyncing)
+                   const Text('🟡 Syncing... ', style: TextStyle(color: Colors.orange)),
+                if (_isOnline && !_isSyncing)
+                   const Text('🟢 Synced ', style: TextStyle(color: Colors.green)),
+              ],
+            ),
+          )
         ],
       ),
+
+
       body: _screens[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

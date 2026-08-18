@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:uuid/uuid.dart';
+import 'sync_service.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
@@ -10,16 +11,14 @@ class DatabaseHelper {
 
   final _uuid = const Uuid();
 
-  Future<void> _logSyncEvent(Database db, String type, String collectionName, Map<String, dynamic> data) async {
-    await db.insert('sync_queue', {
-      'operationId': _uuid.v4(),
-      'type': type,
-      'collection_name': collectionName,
-      'data': jsonEncode(data),
-      'timestamp': DateTime.now().toUtc().toIso8601String(),
-      'syncStatus': 'PENDING'
-    });
+
+  final _uuid = const Uuid();
+
+  Future<void> _dispatchToCloud(String collectionName, String globalId, Map<String, dynamic> data) async {
+    // Fire and forget - Firestore native SDK handles offline caching and eventual sync
+    SyncService.write(collectionName, globalId, data);
   }
+
 
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
@@ -234,15 +233,15 @@ class DatabaseHelper {
     final productMap = product.toMap();
     productMap['global_id'] = _uuid.v4();
 
+
     final id = await db.insert('products', productMap);
     
-    // Log to sync queue
-    await _logSyncEvent(db, 'INSERT', 'inventory', {
-      ...productMap,
-      'id': id, // pass local id just in case, though global_id is the real key
-    });
+    // Dispatch to Firestore native queue
+    productMap['id'] = id;
+    _dispatchToCloud('inventory', productMap['global_id'], productMap);
     
     return Product(
+
 
       id: id,
       name: product.name,

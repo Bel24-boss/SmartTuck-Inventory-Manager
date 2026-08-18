@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/sync_service.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'sales/pos_screen.dart';
 import 'inventory/inventory_screen.dart';
@@ -15,6 +16,21 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start background sync
+    _runBackgroundSync();
+  }
+
+  void _runBackgroundSync() async {
+    while (mounted) {
+      await SyncService.syncAll();
+      await Future.delayed(const Duration(seconds: 30)); // Sync every 30 seconds
+    }
+  }
+
 
   final List<Widget> _screens = [
     const DashboardScreen(),

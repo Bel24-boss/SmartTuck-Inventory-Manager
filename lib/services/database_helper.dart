@@ -20,31 +20,43 @@ class DatabaseHelper {
     if (kIsWeb) {
       databaseFactory = databaseFactoryFfiWeb;
       return await databaseFactory.openDatabase(filePath, options: OpenDatabaseOptions(
-        version: 2, onCreate: _createDB, onUpgrade: _upgradeDB,
+        version: 3, onCreate: _createDB, onUpgrade: _upgradeDB,
       ));
     } else {
       final dbPath = await getDatabasesPath();
       final path = join(dbPath, filePath);
-      return await openDatabase(path, version: 2, onCreate: _createDB, onUpgrade: _upgradeDB);
+      return await openDatabase(path, version: 3, onCreate: _createDB, onUpgrade: _upgradeDB);
     }
   }
 
 
+  
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       final tables = ['products', 'sales', 'sale_items', 'change_register', 'expenses', 'daily_sessions', 'cash_operations'];
       for (var table in tables) {
         try {
           await db.execute('ALTER TABLE $table ADD COLUMN sync_status TEXT DEFAULT "PENDING_SYNC"');
-          await db.execute('ALTER TABLE $table ADD COLUMN device_id TEXT DEFAULT "web_client_01"');
+          await db.execute('ALTER TABLE $table ADD COLUMN device_id TEXT');
           await db.execute('ALTER TABLE $table ADD COLUMN created_at TEXT');
           await db.execute('ALTER TABLE $table ADD COLUMN updated_at TEXT');
         } catch (e) {
-          debugPrint('Migration error on $table: $e');
+          debugPrint('Migration error v2 on $table: $e');
+        }
+      }
+    }
+    if (oldVersion < 3) {
+      final tables = ['products', 'sales', 'sale_items', 'change_register', 'expenses', 'daily_sessions', 'cash_operations', 'stock_purchases'];
+      for (var table in tables) {
+        try {
+          await db.execute('ALTER TABLE $table ADD COLUMN global_id TEXT');
+        } catch (e) {
+          debugPrint('Migration error v3 on $table: $e');
         }
       }
     }
   }
+
 
   Future _createDB(Database db, int version) async {
     await db.execute('''
@@ -61,7 +73,8 @@ class DatabaseHelper {
         expiry_date TEXT,
         category TEXT,
         sync_status TEXT DEFAULT 'PENDING_SYNC',
-        device_id TEXT DEFAULT 'web_client_01',
+        device_id TEXT,
+        global_id TEXT,
         created_at TEXT,
         updated_at TEXT
       )
@@ -75,7 +88,8 @@ class DatabaseHelper {
         payment_method TEXT DEFAULT 'Cash',
         cashier TEXT DEFAULT 'Attendant',
         sync_status TEXT DEFAULT 'PENDING_SYNC',
-        device_id TEXT DEFAULT 'web_client_01',
+        device_id TEXT,
+        global_id TEXT,
         created_at TEXT,
         updated_at TEXT
       )
@@ -91,7 +105,8 @@ class DatabaseHelper {
         FOREIGN KEY (sale_id) REFERENCES sales (id) ON DELETE CASCADE,
         FOREIGN KEY (product_id) REFERENCES products (id),
         sync_status TEXT DEFAULT 'PENDING_SYNC',
-        device_id TEXT DEFAULT 'web_client_01',
+        device_id TEXT,
+        global_id TEXT,
         created_at TEXT,
         updated_at TEXT
       )
@@ -107,7 +122,8 @@ class DatabaseHelper {
         date TEXT NOT NULL,
         status TEXT DEFAULT 'Pending',
         sync_status TEXT DEFAULT 'PENDING_SYNC',
-        device_id TEXT DEFAULT 'web_client_01',
+        device_id TEXT,
+        global_id TEXT,
         created_at TEXT,
         updated_at TEXT
       )
@@ -120,7 +136,8 @@ class DatabaseHelper {
         amount REAL NOT NULL,
         date TEXT NOT NULL,
         sync_status TEXT DEFAULT 'PENDING_SYNC',
-        device_id TEXT DEFAULT 'web_client_01',
+        device_id TEXT,
+        global_id TEXT,
         created_at TEXT,
         updated_at TEXT
       )
@@ -141,7 +158,8 @@ class DatabaseHelper {
         ecocash_over_short REAL,
         closed_date TEXT,
         sync_status TEXT DEFAULT 'PENDING_SYNC',
-        device_id TEXT DEFAULT 'web_client_01',
+        device_id TEXT,
+        global_id TEXT,
         created_at TEXT,
         updated_at TEXT
       )
@@ -159,7 +177,8 @@ class DatabaseHelper {
         date TEXT NOT NULL,
         notes TEXT,
         sync_status TEXT DEFAULT 'PENDING_SYNC',
-        device_id TEXT DEFAULT 'web_client_01',
+        device_id TEXT,
+        global_id TEXT,
         created_at TEXT,
         updated_at TEXT
       )
@@ -175,7 +194,8 @@ class DatabaseHelper {
         date TEXT NOT NULL,
         FOREIGN KEY (product_id) REFERENCES products (id),
         sync_status TEXT DEFAULT 'PENDING_SYNC',
-        device_id TEXT DEFAULT 'web_client_01',
+        device_id TEXT,
+        global_id TEXT,
         created_at TEXT,
         updated_at TEXT
       )

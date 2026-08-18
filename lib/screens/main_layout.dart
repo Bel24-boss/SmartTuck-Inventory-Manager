@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/sync_service.dart';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../services/database_helper.dart';
+
 import 'dashboard/dashboard_screen.dart';
 import 'sales/pos_screen.dart';
 import 'inventory/inventory_screen.dart';
@@ -15,21 +19,52 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
+
+  bool _isOnline = true;
+  bool _isSyncing = false;
+  int _pendingChanges = 0;
+
   int _selectedIndex = 0;
+
 
   @override
   void initState() {
     super.initState();
-    // Start background sync
+    // Start background sync and listeners
+    SyncService.listenToRemoteChanges('inventory');
+    SyncService.listenToRemoteChanges('transactions');
     _runBackgroundSync();
   }
 
+
+  
   void _runBackgroundSync() async {
+    Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) {
+      if (mounted) {
+        setState(() {
+          _isOnline = !result.contains(ConnectivityResult.none);
+        });
+      }
+    });
+
     while (mounted) {
-      await SyncService.syncAll();
-      await Future.delayed(const Duration(seconds: 30)); // Sync every 30 seconds
+      if (_isOnline) {
+        setState(() => _isSyncing = true);
+        await SyncService.syncAll();
+        setState(() => _isSyncing = false);
+      }
+      
+      // Check pending items
+      final db = await DatabaseHelper.instance.database;
+      final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM sync_queue WHERE syncStatus = ?', ['PENDING'])) ?? 0;
+      if (mounted) {
+        setState(() => _pendingChanges = count);
+      }
+      
+      await Future.delayed(const Duration(seconds: 10)); // Check faster
     }
   }
+
 
 
   final List<Widget> _screens = [

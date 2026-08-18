@@ -1,10 +1,26 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+import 'package:uuid/uuid.dart';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import '../models/product.dart';
 
 class DatabaseHelper {
+
+  final _uuid = const Uuid();
+
+  Future<void> _logSyncEvent(Database db, String type, String collectionName, Map<String, dynamic> data) async {
+    await db.insert('sync_queue', {
+      'operationId': _uuid.v4(),
+      'type': type,
+      'collection_name': collectionName,
+      'data': jsonEncode(data),
+      'timestamp': DateTime.now().toUtc().toIso8601String(),
+      'syncStatus': 'PENDING'
+    });
+  }
+
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
@@ -20,16 +36,17 @@ class DatabaseHelper {
     if (kIsWeb) {
       databaseFactory = databaseFactoryFfiWeb;
       return await databaseFactory.openDatabase(filePath, options: OpenDatabaseOptions(
-        version: 3, onCreate: _createDB, onUpgrade: _upgradeDB,
+        version: 4, onCreate: _createDB, onUpgrade: _upgradeDB,
       ));
     } else {
       final dbPath = await getDatabasesPath();
       final path = join(dbPath, filePath);
-      return await openDatabase(path, version: 3, onCreate: _createDB, onUpgrade: _upgradeDB);
+      return await openDatabase(path, version: 4, onCreate: _createDB, onUpgrade: _upgradeDB);
     }
   }
 
 
+  
   
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
@@ -40,9 +57,7 @@ class DatabaseHelper {
           await db.execute('ALTER TABLE $table ADD COLUMN device_id TEXT');
           await db.execute('ALTER TABLE $table ADD COLUMN created_at TEXT');
           await db.execute('ALTER TABLE $table ADD COLUMN updated_at TEXT');
-        } catch (e) {
-          debugPrint('Migration error v2 on $table: $e');
-        }
+        } catch (e) {}
       }
     }
     if (oldVersion < 3) {
@@ -50,12 +65,24 @@ class DatabaseHelper {
       for (var table in tables) {
         try {
           await db.execute('ALTER TABLE $table ADD COLUMN global_id TEXT');
-        } catch (e) {
-          debugPrint('Migration error v3 on $table: $e');
-        }
+        } catch (e) {}
       }
     }
+    if (oldVersion < 4) {
+      await db.execute('''
+        CREATE TABLE sync_queue (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          operationId TEXT NOT NULL,
+          type TEXT NOT NULL,
+          collection_name TEXT NOT NULL,
+          data TEXT NOT NULL,
+          timestamp TEXT NOT NULL,
+          syncStatus TEXT DEFAULT 'PENDING'
+        )
+      ''');
+    }
   }
+
 
 
   Future _createDB(Database db, int version) async {
@@ -204,8 +231,19 @@ class DatabaseHelper {
 
   Future<Product> createProduct(Product product) async {
     final db = await instance.database;
-    final id = await db.insert('products', product.toMap());
+    final productMap = product.toMap();
+    productMap['global_id'] = _uuid.v4();
+
+    final id = await db.insert('products', productMap);
+    
+    // Log to sync queue
+    await _logSyncEvent(db, 'INSERT', 'inventory', {
+      ...productMap,
+      'id': id, // pass local id just in case, though global_id is the real key
+    });
+    
     return Product(
+
       id: id,
       name: product.name,
       buyingPrice: product.buyingPrice,

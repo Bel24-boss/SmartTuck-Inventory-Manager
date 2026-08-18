@@ -1,88 +1,74 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import 'database_helper.dart';
 
 class SyncService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static const Uuid _uuid = Uuid();
 
-  /// Synchronize a specific table with Firestore
-  static Future<void> syncTable(String tableName) async {
-    try {
-      await pushPendingRecords(tableName);
-      await pullRemoteRecords(tableName);
-    } catch (e) {
-      debugPrint("Error syncing table $tableName: $e");
-    }
-  }
-
-  /// Synchronize all main tables
-  static Future<void> syncAll() async {
-    final tables = [
-      'products',
-      'sales',
-      'sale_items',
-      'expenses',
-      'change_register',
-      'cash_operations'
-    ];
-    for (var table in tables) {
-      await syncTable(table);
-    }
-    debugPrint("Full sync completed.");
-  }
-
-  /// Push local records marked as PENDING_SYNC to Firestore
-  static Future<void> pushPendingRecords(String tableName) async {
+  /// Process the local sync queue and push events to Firestore
+  static Future<void> processSyncQueue() async {
     final db = await DatabaseHelper.instance.database;
-    final pendingRecords = await db.query(tableName, where: 'sync_status = ?', whereArgs: ['PENDING_SYNC']);
-
-    for (var record in pendingRecords) {
-      final mutableRecord = Map<String, dynamic>.from(record);
+    
+    // Get all pending operations
+    final pendingOps = await db.query('sync_queue', where: 'syncStatus = ?', whereArgs: ['PENDING'], orderBy: 'id ASC');
+    
+    for (var op in pendingOps) {
+      final String operationId = op['operationId'] as String;
+      final String type = op['type'] as String;
+      final String collection = op['collection_name'] as String;
+      final Map<String, dynamic> data = jsonDecode(op['data'] as String);
       
-      // Generate global_id if it doesn't exist
-      String? globalId = mutableRecord['global_id'] as String?;
-      if (globalId == null || globalId.isEmpty) {
-        globalId = _uuid.v4();
-        mutableRecord['global_id'] = globalId;
-        // Update local DB with the new global_id
-        await db.update(tableName, {'global_id': globalId}, where: 'id = ?', whereArgs: [mutableRecord['id']]);
+      try {
+        final globalId = data['global_id'] ?? data['id'].toString(); // fallback to local id if global_id not generated yet
+        
+        if (type == 'INSERT' || type == 'UPDATE') {
+          // Push to Firestore using the global ID
+          await _firestore.collection(collection).doc(globalId).set(data, SetOptions(merge: true));
+        } else if (type == 'DELETE') {
+          await _firestore.collection(collection).doc(globalId).delete();
+        }
+        
+        // Acknowledge and mark synchronized
+        await db.update('sync_queue', {'syncStatus': 'SYNCED'}, where: 'operationId = ?', whereArgs: [operationId]);
+        
+      } catch (e) {
+        debugPrint("Error syncing operation $operationId: $e");
+        // We break the loop because order matters in a queue. If one fails, we stop and retry next time.
+        break; 
       }
-
-      // Remove the local SQLite auto-increment ID to prevent collisions on other devices
-      mutableRecord.remove('id');
-      mutableRecord['sync_status'] = 'SYNCED';
-
-      // Push to Firestore
-      await _firestore.collection(tableName).doc(globalId).set(mutableRecord, SetOptions(merge: true));
-
-      // Mark local as synced
-      await db.update(tableName, {'sync_status': 'SYNCED'}, where: 'global_id = ?', whereArgs: [globalId]);
     }
   }
 
-  /// Pull remote records from Firestore and insert/update local SQLite
-  static Future<void> pullRemoteRecords(String tableName) async {
-    final db = await DatabaseHelper.instance.database;
-    final snapshot = await _firestore.collection(tableName).get();
-
-    for (var doc in snapshot.docs) {
-      final data = doc.data();
-      final String globalId = doc.id;
-      data['global_id'] = globalId;
-      data['sync_status'] = 'SYNCED'; // Mark as synced so we don't push it back
-
-      // Check if this record already exists locally
-      final existing = await db.query(tableName, where: 'global_id = ?', whereArgs: [globalId]);
-
-      if (existing.isEmpty) {
-        // Insert new record from cloud
-        await db.insert(tableName, data);
-      } else {
-        // Update existing local record
-        await db.update(tableName, data, where: 'global_id = ?', whereArgs: [globalId]);
+  /// Listen for remote changes on specific collections to pull data down
+  static void listenToRemoteChanges(String collectionName) {
+    _firestore.collection(collectionName).snapshots().listen((snapshot) async {
+      final db = await DatabaseHelper.instance.database;
+      for (var change in snapshot.docChanges) {
+        final data = change.doc.data();
+        if (data == null) continue;
+        
+        final globalId = data['global_id'] ?? change.doc.id;
+        
+        if (change.type == DocumentChangeType.added || change.type == DocumentChangeType.modified) {
+           // We need to map 'inventory' to 'products' table etc.
+           String tableName = collectionName == 'inventory' ? 'products' : 
+                              collectionName == 'transactions' ? 'sales' : collectionName;
+                              
+           // Check if it exists
+           final existing = await db.query(tableName, where: 'global_id = ?', whereArgs: [globalId]);
+           
+           if (existing.isEmpty) {
+              await db.insert(tableName, data);
+           } else {
+              await db.update(tableName, data, where: 'global_id = ?', whereArgs: [globalId]);
+           }
+        }
       }
-    }
+    });
+  }
+
+  static Future<void> syncAll() async {
+    await processSyncQueue();
   }
 }

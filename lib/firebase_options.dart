@@ -13,12 +13,12 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_YOUR_API_KEY',
-    appId: 'REPLACE_WITH_YOUR_APP_ID',
-    messagingSenderId: 'REPLACE_WITH_YOUR_SENDER_ID',
-    projectId: 'REPLACE_WITH_YOUR_PROJECT_ID',
-    authDomain: 'REPLACE_WITH_YOUR_AUTH_DOMAIN',
-    storageBucket: 'REPLACE_WITH_YOUR_STORAGE_BUCKET',
-    measurementId: 'REPLACE_WITH_YOUR_MEASUREMENT_ID',
+    apiKey: 'AIzaSyBlGgz0mY2KhhYLleYFYcnhQMn34FTr03s',
+    appId: '1:1055546977704:web:97793ebe6c8f029a5e419d',
+    messagingSenderId: '1055546977704',
+    projectId: 'smarttuck-845d9',
+    authDomain: 'smarttuck-845d9.firebaseapp.com',
+    storageBucket: 'smarttuck-845d9.firebasestorage.app',
+    measurementId: 'G-BDLBVBV8SQ',
   );
 }

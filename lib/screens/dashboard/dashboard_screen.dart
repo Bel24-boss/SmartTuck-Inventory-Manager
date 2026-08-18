@@ -1,3 +1,4 @@
+import '../analytics/analytics_screen.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/database_helper.dart';
@@ -235,22 +236,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(color: Colors.grey.withOpacity(0.2)),
                 ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  leading: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.insights, color: Colors.blue),
-                  ),
-                  title: const Text('Analytics & Reports', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('View detailed charts for best selling products and profits.', style: TextStyle(fontSize: 12)),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                child: InkWell(
                   onTap: () {
-                    // Navigate to reports or change tab via provider in a real setup
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const AnalyticsScreen()));
                   },
+                  borderRadius: BorderRadius.circular(16),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.insights, color: Colors.blue),
+                    ),
+                    title: const Text('Advanced Analytics', style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: const Text('Real-time data visualization and fintech metrics', style: TextStyle(fontSize: 12)),
+                    trailing: const Icon(Icons.chevron_right, color: Colors.blue),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

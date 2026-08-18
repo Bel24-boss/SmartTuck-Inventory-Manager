@@ -83,38 +83,41 @@ class _MainLayoutState extends State<MainLayout> {
     final activeColor = const Color(0xFF6B4EFF); // Purple-blue from screenshot
     final inactiveColor = const Color(0xFF4A4A4A); // Dark grey from screenshot
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-      },
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFFEBE5FF) : Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFFEBE5FF) : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                icon,
+                size: 24,
+                color: isSelected ? activeColor : inactiveColor,
+              ),
             ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: isSelected ? activeColor : inactiveColor,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10, // Slightly smaller for better fitting 6 items
+                fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                color: isSelected ? activeColor : inactiveColor,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-              color: isSelected ? activeColor : inactiveColor,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

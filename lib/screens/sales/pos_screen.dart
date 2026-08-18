@@ -348,7 +348,6 @@ class _PosScreenState extends State<PosScreen> {
                   )
                 ],
               );
-            return const Center(child: Text('Desktop layout coming soon'));
           },
         );
   }

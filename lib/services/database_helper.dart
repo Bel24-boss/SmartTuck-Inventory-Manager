@@ -20,13 +20,29 @@ class DatabaseHelper {
     if (kIsWeb) {
       databaseFactory = databaseFactoryFfiWeb;
       return await databaseFactory.openDatabase(filePath, options: OpenDatabaseOptions(
-        version: 1,
-        onCreate: _createDB,
+        version: 2, onCreate: _createDB, onUpgrade: _upgradeDB,
       ));
     } else {
       final dbPath = await getDatabasesPath();
       final path = join(dbPath, filePath);
-      return await openDatabase(path, version: 1, onCreate: _createDB);
+      return await openDatabase(path, version: 2, onCreate: _createDB, onUpgrade: _upgradeDB);
+    }
+  }
+
+
+  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      final tables = ['products', 'sales', 'sale_items', 'change_register', 'expenses', 'daily_sessions', 'cash_operations'];
+      for (var table in tables) {
+        try {
+          await db.execute('ALTER TABLE $table ADD COLUMN sync_status TEXT DEFAULT "PENDING_SYNC"');
+          await db.execute('ALTER TABLE $table ADD COLUMN device_id TEXT DEFAULT "web_client_01"');
+          await db.execute('ALTER TABLE $table ADD COLUMN created_at TEXT');
+          await db.execute('ALTER TABLE $table ADD COLUMN updated_at TEXT');
+        } catch (e) {
+          debugPrint('Migration error on $table: $e');
+        }
+      }
     }
   }
 
@@ -43,7 +59,11 @@ class DatabaseHelper {
         supplier TEXT,
         date_added TEXT,
         expiry_date TEXT,
-        category TEXT
+        category TEXT,
+        sync_status TEXT DEFAULT 'PENDING_SYNC',
+        device_id TEXT DEFAULT 'web_client_01',
+        created_at TEXT,
+        updated_at TEXT
       )
     ''');
     
@@ -53,7 +73,11 @@ class DatabaseHelper {
         total_amount REAL NOT NULL,
         date TEXT NOT NULL,
         payment_method TEXT DEFAULT 'Cash',
-        cashier TEXT DEFAULT 'Attendant'
+        cashier TEXT DEFAULT 'Attendant',
+        sync_status TEXT DEFAULT 'PENDING_SYNC',
+        device_id TEXT DEFAULT 'web_client_01',
+        created_at TEXT,
+        updated_at TEXT
       )
     ''');
 
@@ -65,7 +89,11 @@ class DatabaseHelper {
         quantity INTEGER NOT NULL,
         unit_price REAL NOT NULL,
         FOREIGN KEY (sale_id) REFERENCES sales (id) ON DELETE CASCADE,
-        FOREIGN KEY (product_id) REFERENCES products (id)
+        FOREIGN KEY (product_id) REFERENCES products (id),
+        sync_status TEXT DEFAULT 'PENDING_SYNC',
+        device_id TEXT DEFAULT 'web_client_01',
+        created_at TEXT,
+        updated_at TEXT
       )
     ''');
 
@@ -77,7 +105,11 @@ class DatabaseHelper {
         amount_owed REAL NOT NULL,
         reason TEXT,
         date TEXT NOT NULL,
-        status TEXT DEFAULT 'Pending'
+        status TEXT DEFAULT 'Pending',
+        sync_status TEXT DEFAULT 'PENDING_SYNC',
+        device_id TEXT DEFAULT 'web_client_01',
+        created_at TEXT,
+        updated_at TEXT
       )
     ''');
     
@@ -86,7 +118,11 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         description TEXT NOT NULL,
         amount REAL NOT NULL,
-        date TEXT NOT NULL
+        date TEXT NOT NULL,
+        sync_status TEXT DEFAULT 'PENDING_SYNC',
+        device_id TEXT DEFAULT 'web_client_01',
+        created_at TEXT,
+        updated_at TEXT
       )
     ''');
     
@@ -103,7 +139,11 @@ class DatabaseHelper {
         closing_ecocash REAL,
         cash_over_short REAL,
         ecocash_over_short REAL,
-        closed_date TEXT
+        closed_date TEXT,
+        sync_status TEXT DEFAULT 'PENDING_SYNC',
+        device_id TEXT DEFAULT 'web_client_01',
+        created_at TEXT,
+        updated_at TEXT
       )
     ''');
     
@@ -117,7 +157,11 @@ class DatabaseHelper {
         amount REAL NOT NULL,
         fee REAL NOT NULL,
         date TEXT NOT NULL,
-        notes TEXT
+        notes TEXT,
+        sync_status TEXT DEFAULT 'PENDING_SYNC',
+        device_id TEXT DEFAULT 'web_client_01',
+        created_at TEXT,
+        updated_at TEXT
       )
     ''');
 
@@ -129,7 +173,11 @@ class DatabaseHelper {
         quantity INTEGER NOT NULL,
         cost REAL NOT NULL,
         date TEXT NOT NULL,
-        FOREIGN KEY (product_id) REFERENCES products (id)
+        FOREIGN KEY (product_id) REFERENCES products (id),
+        sync_status TEXT DEFAULT 'PENDING_SYNC',
+        device_id TEXT DEFAULT 'web_client_01',
+        created_at TEXT,
+        updated_at TEXT
       )
     ''');
   }

@@ -15,8 +15,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _revenue = 0.0;
   double _netProfit = 0.0;
   bool _isLoading = true;
-  String _mlInsight = "Insufficient data to model insights. Awaiting minimum sales threshold to generate revenue optimization strategies.";
-
+  List<Map<String, dynamic>> _insights = [];
   @override
   void initState() {
     super.initState();

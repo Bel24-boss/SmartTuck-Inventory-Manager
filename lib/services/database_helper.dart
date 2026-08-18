@@ -9,8 +9,6 @@ import '../models/product.dart';
 
 class DatabaseHelper {
 
-  final _uuid = const Uuid();
-
 
   final _uuid = const Uuid();
 
@@ -495,7 +493,7 @@ class DatabaseHelper {
 
     if (products.isEmpty) return;
 
-    List<Map<String, String>> newInsights = [];
+    List<Map<String, dynamic>> newInsights = [];
 
     final lowStock = List<Map<String, dynamic>>.from(products);
     lowStock.sort((a, b) => (a['quantity'] as int).compareTo(b['quantity'] as int));
@@ -531,6 +529,7 @@ class DatabaseHelper {
     final db = await instance.database;
     return await db.query('insights_history', orderBy: 'id DESC', limit: 3);
   }
+}
 
 String _computeMLInsights(Map<String, List<Map<String, dynamic>>> data) {
   final products = data['products']!;

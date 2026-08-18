@@ -80,6 +80,12 @@ class _MainLayoutState extends State<MainLayout> {
       appBar: AppBar(
         title: const Text('SmartTuck Retail'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.black87),
+            onPressed: () {
+              showSearch(context: context, delegate: UniversalSearchDelegate());
+            },
+          ),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(

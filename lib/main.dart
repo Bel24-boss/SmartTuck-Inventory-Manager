@@ -9,6 +9,7 @@ import 'theme/app_theme.dart';
 import 'screens/main_layout.dart';
 import 'screens/opening_screen.dart';
 import 'services/database_helper.dart';
+import 'services/sync_service.dart';
 import 'providers/inventory_provider.dart';
 
 void main() async {
@@ -19,10 +20,16 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Enable native Firestore offline persistence
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-  );
+    // Enable native Firestore offline persistence
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+    );
+
+    // Initialize synchronization listeners to pull changes from other devices
+    SyncService.listenToRemoteChanges('inventory');
+    SyncService.listenToRemoteChanges('transactions');
+    SyncService.listenToRemoteChanges('expenses');
+    SyncService.listenToRemoteChanges('change_register');
 
     debugPrint("Firebase initialized successfully");
   } catch (e) {

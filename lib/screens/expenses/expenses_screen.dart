@@ -257,8 +257,16 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             ),
                             title: Text(expense['description'], style: const TextStyle(fontWeight: FontWeight.bold)),
                             subtitle: Text(date, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                            trailing: Text("-\$${(expense['amount'] as num).toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
-                          ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text("-\$${(expense['amount'] as num).toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
+                                  onPressed: () => _showDeleteExpenseDialog(expense),
+                                ),
+                              ],
+                            ),                          ),
                         );
                       },
                     );

@@ -262,7 +262,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
-            _reportButton('Daily Sales Log', Icons.insert_chart_outlined, const Color(0xFF6B4EFF), () => _showReportDialog('Daily Sales', 'Total Revenue Today: \$${_totalSales.toStringAsFixed(2)}')),
+            _reportButton('Daily Sales Log', Icons.insert_chart_outlined, const Color(0xFF6B4EFF), () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesHistoryScreen()));
+            }),
             _reportButton('Expense Records', Icons.receipt_long_rounded, const Color(0xFFEF4444), () => _showReportDialog('Expense Reports', 'Total Expenses: \$${_totalExpenses.toStringAsFixed(2)}')),
             _reportButton('EcoCash Log', Icons.swap_vert_rounded, const Color(0xFF3B82F6), () => _showReportDialog('Mobile Money', 'Total EcoCash Revenue: \$${_ecoSales.toStringAsFixed(2)}')),
             _reportButton('Customer Credits', Icons.group_outlined, const Color(0xFFF59E0B), () => _showReportDialog('Credits', 'Managed via Change Register.')),
@@ -307,6 +309,133 @@ class _ReportsScreenState extends State<ReportsScreen> {
         content: Text(content, style: const TextStyle(fontSize: 16)),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
       )
+    );
+  }
+}
+
+class SalesHistoryScreen extends StatefulWidget {
+  const SalesHistoryScreen({super.key});
+
+  @override
+  State<SalesHistoryScreen> createState() => _SalesHistoryScreenState();
+}
+
+class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
+  List<Map<String, dynamic>> _sales = [];
+  bool _isLoading = true;
+  double _totalSalesSum = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSales();
+  }
+
+  Future<void> _loadSales() async {
+    final db = await DatabaseHelper.instance.database;
+    final salesData = await db.query('sales', orderBy: 'id DESC');
+    
+    double sum = 0;
+    List<Map<String, dynamic>> enrichedSales = [];
+
+    for (var s in salesData) {
+      sum += (s['total_amount'] as num).toDouble();
+      
+      final items = await db.rawQuery('''
+        SELECT si.quantity, p.name 
+        FROM sale_items si 
+        JOIN products p ON si.product_id = p.id 
+        WHERE si.sale_id = ?
+      ''', [s['id']]);
+      
+      String itemsStr = items.map((i) => '${i['quantity']}x ${i['name']}').join(', ');
+      
+      final map = Map<String, dynamic>.from(s);
+      map['items'] = itemsStr.isEmpty ? 'Unknown Items' : itemsStr;
+      enrichedSales.add(map);
+    }
+
+    setState(() {
+      _sales = enrichedSales;
+      _totalSalesSum = sum;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFC),
+      appBar: AppBar(
+        title: const Text('Sales Ledger Sheet', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.black87),
+      ),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 5))],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text('TOTAL ALL-TIME SALES', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                        SizedBox(height: 4),
+                        Text('Gross Summation', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    Text('\$${_totalSalesSum.toStringAsFixed(2)}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.withValues(alpha: 0.2))),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SingleChildScrollView(
+                      child: DataTable(
+                        headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54),
+                        dataTextStyle: const TextStyle(fontSize: 14, color: Colors.black87),
+                        columns: const [
+                          DataColumn(label: Text('Date & Time')),
+                          DataColumn(label: Text('Items Sold')),
+                          DataColumn(label: Text('Payment Method')),
+                          DataColumn(label: Text('Amount', textAlign: TextAlign.right)),
+                        ],
+                        rows: _sales.map((sale) {
+                          String dateStr = sale['date'] ?? '';
+                          if (dateStr.length > 16) dateStr = dateStr.substring(0, 16).replaceAll('T', ' ');
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(dateStr)),
+                              DataCell(SizedBox(width: 200, child: Text(sale['items'] ?? 'Unknown Items', overflow: TextOverflow.ellipsis))),
+                              DataCell(Text(sale['payment_method'] ?? 'Cash')),
+                              DataCell(Text('\$${(sale['total_amount'] as num).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981)))),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
     );
   }
 }

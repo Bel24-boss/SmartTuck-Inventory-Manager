@@ -1,5 +1,6 @@
 import '../analytics/analytics_screen.dart';
 import '../expenses/expenses_screen.dart';
+import 'close_shop_screen.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/database_helper.dart';
@@ -278,6 +279,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
               ),
+              const SizedBox(height: 24),
+              
+              // Close Shop Button
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const CloseShopScreen()));
+                  },
+                  icon: const Icon(Icons.lock_clock),
+                  label: const Text('End of Day Audit & Close Shop', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[50],
+                    foregroundColor: Colors.red[800],
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: Colors.red.withOpacity(0.3)),
+                    ),
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 80), // Padding for FAB
             ],
           ),

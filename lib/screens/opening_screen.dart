@@ -15,6 +15,7 @@ class _OpeningScreenState extends State<OpeningScreen> {
   final _ecocashCtrl = TextEditingController();
   final _floatOutCtrl = TextEditingController();
   final _floatChangeCtrl = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
 
   Future<void> _openShop() async {
@@ -30,7 +31,13 @@ class _OpeningScreenState extends State<OpeningScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await DatabaseHelper.instance.openSession(cash, ecocash, floatOut, floatChange);
+      await DatabaseHelper.instance.openSession(
+        cash, 
+        ecocash, 
+        floatOut, 
+        floatChange,
+        customDate: _selectedDate.toIso8601String(),
+      );
       if (mounted) {
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const MainLayout()));
       }
@@ -64,7 +71,45 @@ class _OpeningScreenState extends State<OpeningScreen> {
                     const SizedBox(height: 16),
                     const Text('Good Morning!', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                     const Text('Let\'s open the shop for the day.', style: TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
+                    
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2101),
+                        );
+                        if (picked != null) {
+                          setState(() => _selectedDate = picked);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.withOpacity(0.5)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Recording Date: ${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                            const Icon(Icons.edit, size: 18, color: Colors.grey),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     
                     TextField(
                       controller: _cashCtrl,

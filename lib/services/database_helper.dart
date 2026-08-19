@@ -354,11 +354,11 @@ class DatabaseHelper {
     return result.isNotEmpty ? result.first : null;
   }
 
-  Future<int> openSession(double openingCash, double openingEcocash, double floatCashOut, double floatChange) async {
+  Future<int> openSession(double openingCash, double openingEcocash, double floatCashOut, double floatChange, {String? customDate}) async {
     final db = await instance.database;
     
     final map = {
-      'date': DateTime.now().toIso8601String(),
+      'date': customDate ?? DateTime.now().toIso8601String(),
       'opening_cash': openingCash,
       'opening_ecocash': openingEcocash,
       'float_cash_out': floatCashOut,
@@ -370,7 +370,6 @@ class DatabaseHelper {
     map['id'] = id;
     _dispatchToCloud('daily_sessions', map['global_id'] as String, map);
     return id;
-
   }
 
   Future<void> closeSession(int sessionId, double actualCash, double actualEcocash, double expectedCash, double expectedEcocash) async {
